@@ -135,8 +135,6 @@ function findStreet(rawStreetName) {
 	if( streetObject == null || streetObject == undefined ) {
 		handleStreetNotFound(rawStreetName);
 	}
-
-	return streetObject;
 }
 
 function handleStreetNotFound(rawStreetName) {
@@ -182,16 +180,16 @@ $(document).ready(function() {
     var t8 = "125 Rt. 202/206"; // Martinsville
     var t9 = "475 Rt. 202/206"; // Bedminster
 
-    console.log(findTerritory(t1) + " === " + "Martinsville");
-    console.log("==============");
-    console.log(findTerritory(t2) + " === " + "Martinsville");
-    console.log("==============");
-    console.log(findTerritory(t5) + " === " + "Martinsville");
-    console.log("==============");
-    console.log(findTerritory(t3) + " === " + "Green Knoll");
-    console.log("==============");
-    console.log(findTerritory(t4) + " === " + "Green Knoll");
-    console.log("==============");
+    // console.log(findTerritory(t1) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t2) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t5) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t3) + " === " + "Green Knoll");
+    // console.log("==============");
+    // console.log(findTerritory(t4) + " === " + "Green Knoll");
+    // console.log("==============");
     console.log(findTerritory(t6) + " === " + "Bedminster");
     console.log(findTerritory(t7) + " === " + "Green Knoll");
     console.log(findTerritory(t8) + " === " + "Martinsville");
@@ -199,7 +197,7 @@ $(document).ready(function() {
 
 });
 
-var theJson = '{"mrs_territories":{"street_addresses":{"cushing_drive":{"0":"Martinsville"},"washington_valley_road":{"123-1034":"Green Knoll","1035-3050":"Martinsville","3051-5000":"Bedminster"},"rt._202/206":{"0-123":"Green Knoll","123-469":"Martinsville","469-9999":"Bedminster"}},"street_alias":{"wash_val":"washington_valley_road","wash_valley":"washington_valley_road","w_valley":"washington_valley_road","washington_valley_road":"washington_valley_road"},"group_homes":{"by_name":{"advoserve":true,"badvoserve":true},"by_address":{"1234343":"11 foothill rd","2223332":"263 washington valley rd"}}}}';
+var theJson = '{"mrs_territories":{"street_addresses":{"cushing_drive":{"0":"Martinsville"},"washington_valley_rd":{"123-1034":"Green Knoll","1035-3050":"Martinsville","3051-5000":"Bedminster"},"rt._202/206":{"0-123":"Green Knoll","123-469":"Martinsville","469-9999":"Bedminster"}},"street_alias":{"wash_val":"washington_valley_rd","wash_valley":"washington_valley_rd","w_valley":"washington_valley_rd"},"group_homes":{"by_name":{"advoserve":true,"badvoserve":true},"by_address":{"1234343":"11 foothill rd","2223332":"263 washington valley rd"}}}}';
 
 
 </script>
