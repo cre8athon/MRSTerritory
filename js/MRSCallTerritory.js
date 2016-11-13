@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  try to take over the world!
 // @author       You
-// @match        *://www.iamresponding.com/v3/agency/def.aspx
+// @match        *://www.iamresponding.com/v3/*
 // @grant        none
 // ==/UserScript==
 
@@ -12,6 +12,10 @@
 //TODO: 1) If on "Directions" view - update different set of divs
 // 2) If '&' received - Find each street, and if all are the same territory - use that territory.  Otherwise, not found.  (example: HODGE DR & LINBERGER DR)
 // 3) I think it is ok to hardcode all highways to Green Knoll (check that)
+//
+// TODO: 10:18:21 Nov 3, 2016: 
+//     scctxt@co.somerset.nj.us:GKL-RS:16255597:11/03/2016 10:18:05:STRUCTURE FIRE: BOUND B-123 VOSSELLER AVE 
+//     undefinedundefined
 
 var parseText = function(text) {
     var addressText = text.split(':').pop().split('-').pop();
@@ -25,25 +29,53 @@ var parseText = function(text) {
   return addressText.trim();  
 };
 
-var testIncidents = function() {
-    
-    $('#tblDispatchMessages').each(function() {
-        $(this).children().each(function() {
-//            console.log($(this).text());
-            if( $(this).find('#territory').length === 0 ) {
-                var territory = findTerritory(parseText($(this).text()));
-                var territorySpan;
-                if( territory == 'Not Found' ) {
-                    territorySpan = '<span style="color:red">';
-                } else if( territory == 'Martinsville' ) {
-                    territorySpan = '<span style="color:green">';
-                } else if( territory == 'Green Knoll' ) {
-                    territorySpan = '<span style="color:blue">';
-                }
-                $(this).append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
-            }
-        });
+function makeTerritorySpanElement(territory) {
+	var territorySpan;
+    if( territory == 'Not Found' ) {
+        territorySpan = '<span style="color:red">';
+    } else if( territory == 'Martinsville' ) {
+        territorySpan = '<span style="color:green">';
+    } else if( territory == 'Green Knoll' ) {
+        territorySpan = '<span style="color:blue">';
+    }
+    return territorySpan;
+}
+
+function processMainViewChildren() {
+    $('#tblDispatchMessages').children().each(function() {
+        if( $(this).find('#territory').length === 0 ) {
+            var territory = findTerritory(parseText($(this).text()));
+            var territorySpan = makeTerritorySpanElement(territory);
+            $(this).append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
+        }
     });
+}
+
+function processAltViewChildren(incidentList) {
+    console.log(">> in processAltViewChildren");
+	$('#tblDispatchMessages:').find('li').each(function(idx, li) {
+		console.log('Checking li: ' + parseText($(li).text()));
+        if( $(li).find('#territory').length === 0 ) {
+			var territory = findTerritory(parseText($(this).text()));
+	        var territorySpan = makeTerritorySpanElement(territory);
+	        $(this).find('label').append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
+	    }
+	});
+}
+
+var testIncidents = function() {
+console.log(">> in testIncidents");
+	if( $('#tblDispatchMessages:first-child').is("ul") ) {
+        console.log('...processing altViewChildren');
+		processAltViewChildren();
+	} else if( $('#tblDispatchMessages:first-child').is('div') ) {
+        console.log('...processing mainViewChildren');
+		processMainViewChildren();
+        
+	} else {
+        console.log('##### dont know which view!!!');
+    }
+
 };
 
 $(document).ready(function() {
