@@ -1,0 +1,203 @@
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+</head>
+<script>
+
+var territoryJson;
+
+var streetModifiers = { 
+	'dr': 'drive',
+	'ln': 'lane',
+	'rd': 'road', 
+	'st': 'street',
+	'ct': 'court',
+	'ave': 'avenue',
+	'ter': 'terrace',
+	'pl': 'place'
+};
+
+// To consider:
+// Glen Ridge Drive S
+// Rt. 202/206
+// Rt. 22
+// Stone Gate
+// HEATH DR & RUNNING BROOK RD
+
+function normalizeStreetName(street) {
+	return street.replace(/ /g, '_').toLowerCase();
+}
+
+function replaceStreetAbbr(street) {
+	var lastUnder = street.lastIndexOf('_');
+	if( lastUnder <= 0 ) {
+		return street;
+	}
+
+	var name = street.substring(0, lastUnder);
+	var lastPart = street.substring(lastUnder+1);
+
+	console.log("split street: " + street + " into: " + name + " and " + lastPart);
+	if( lastPart in streetModifiers ) {
+		return name + "_" + streetModifiers[lastPart];
+	}
+
+	return street;
+}
+
+function findStreetByName(street) {
+	console.log("\t\t>>findStreetByName called with: " + street);
+	var retStreetValue;
+
+	$.each(territoryJson.mrs_territories.street_addresses, function(streetKey, streetValue) {
+		if( streetKey === street ) {
+			retStreetValue = streetValue;
+			return false; // breaks the loop
+		}
+	});
+
+	console.log("\t\t<< findStreetByname returning: " + retStreetValue);
+	return retStreetValue;
+}
+
+function findStreetByAlias(street) {
+	console.log("\t\t>> Calling findStreetByAlias with: " + street);
+	var retStreetValue;
+
+	$.each(territoryJson.mrs_territories.street_alias, function(streetKey, streetAlias) {
+		if( streetKey == street ) {
+			retStreetValue = findStreetByName(streetAlias);
+			return false; // breaks the loop
+		}
+	})
+
+	console.log('\t\t<< findStreetByAlias returning: ' + retStreetValue);
+	return retStreetValue;
+}
+
+function findRange(streetNum, ranges) {
+	var retTerritory;
+
+	// If there is a zero, the whole street applies
+	$.each(ranges, function(range, territory) {
+		if( range === "0" ) {
+			retTerritory = territory;
+			return false;
+		}
+
+		if( range.indexOf('-') > 0 ) {
+			var lowRange = parseInt(range.substring(0, range.indexOf('-')));
+			var highRange = parseInt(range.substring(range.indexOf('-')+1));
+
+			if( streetNum >= lowRange && streetNum <= highRange ) {
+				retTerritory = territory;
+				return false;
+			}
+		}
+	});
+	return retTerritory;
+}
+
+function chopLast(street) {
+	return street.substring(0, street.lastIndexOf('_'));
+}
+
+function findStreet(rawStreetName) {
+	var streetName = normalizeStreetName(rawStreetName);
+
+	// unmodified name
+	var streetObject = findStreetByName(streetName);
+	if( streetObject == null || streetObject == undefined) {
+		streetObject = findStreetByAlias(streetName);
+	}
+
+	// With last part replaced ('rd' => 'road')
+	if( streetObject == null || streetObject == undefined ) {
+		var adjustedStreetName = replaceStreetAbbr(streetName);
+		if( adjustedStreetName != streetName ) {
+			streetObject = findStreetByName(adjustedStreetName)
+		}
+		if( streetObject == null || streetObject == undefined ) {
+			streetObject = findStreetByAlias(adjustedStreetName);
+		}
+	}
+
+	// Remove last part
+	if( streetObject == null || streetObject == undefined ) {
+		var withoutRoad = chopLast(streetName);
+		if( withoutRoad != streetName ) {
+			streetObject = findStreetByName(withoutRoad)
+		}
+		if( streetObject == null || streetObject == undefined ) {
+			streetObject = findStreetByAlias(withoutRoad);
+		}
+	}
+
+	if( streetObject == null || streetObject == undefined ) {
+		handleStreetNotFound(rawStreetName);
+	}
+}
+
+function handleStreetNotFound(rawStreetName) {
+	console.log("Unable to find street: " + rawStreetName);
+}
+
+
+function findTerritory(streetAddress) {
+	console.log('findTerritory(' + streetAddress + ')');
+	var streetNum = streetAddress.split(' ')[0];
+	var streetName = streetAddress.substring(streetNum.length+1);
+
+	var streetObject = findStreet(streetName);
+	console.log("(Final) findStreet returned: " + streetObject + ' for ' + streetName)
+	if( streetObject != null ) {
+		console.log('** streetObject for: ' + streetName + ' is: ' + streetObject);
+		return findRange(parseInt(streetNum), streetObject);
+	}
+
+	return null;
+}
+
+function readJson() {
+	territoryJson = $.parseJSON(theJson)
+	// $.each(territoryJson.mrs_territories.street_addresses, function(streetKey, streetValue) {
+	// 	console.log('Street: key: ' + streetKey);
+	// 	$.each(streetValue, function(rangeKey, rangeValue) {
+	// 		console.log('Range: key: ' + rangeKey + ' Value: ' + rangeValue);
+	// 	});
+	// });
+}
+
+$(document).ready(function() {
+    readJson();
+
+    var t1 = "5 Cushing dr"; // Martinsville
+    var t2 = "5 Cushing Drive"; // Martinsville 
+    var t3 = "123 Washington Valley Road"; // Green Knoll
+    var t4 = "1034 Wash Valley Rd"; // Green Knoll
+    var t5 = "1035 Washington Valley Rd"; // Martinsville
+    var t6 = "3055 Wash Val"; // Bedminster
+    var t7 = "114 Rt. 202/206"; // Green Knoll
+    var t8 = "125 Rt. 202/206"; // Martinsville
+    var t9 = "475 Rt. 202/206"; // Bedminster
+
+    // console.log(findTerritory(t1) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t2) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t5) + " === " + "Martinsville");
+    // console.log("==============");
+    // console.log(findTerritory(t3) + " === " + "Green Knoll");
+    // console.log("==============");
+    // console.log(findTerritory(t4) + " === " + "Green Knoll");
+    // console.log("==============");
+    console.log(findTerritory(t6) + " === " + "Bedminster");
+    console.log(findTerritory(t7) + " === " + "Green Knoll");
+    console.log(findTerritory(t8) + " === " + "Martinsville");
+    console.log(findTerritory(t9) + " === " + "Bedminster");
+
+});
+
+var theJson = '{"mrs_territories":{"street_addresses":{"cushing_drive":{"0":"Martinsville"},"washington_valley_rd":{"123-1034":"Green Knoll","1035-3050":"Martinsville","3051-5000":"Bedminster"},"rt._202/206":{"0-123":"Green Knoll","123-469":"Martinsville","469-9999":"Bedminster"}},"street_alias":{"wash_val":"washington_valley_rd","wash_valley":"washington_valley_rd","w_valley":"washington_valley_rd"},"group_homes":{"by_name":{"advoserve":true,"badvoserve":true},"by_address":{"1234343":"11 foothill rd","2223332":"263 washington valley rd"}}}}';
+
+
+</script>

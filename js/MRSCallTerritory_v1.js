@@ -1,40 +1,72 @@
+// ==UserScript==
+// @name         MRS Call Territory
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @match        *://www.iamresponding.com/*
+// @grant        none
+// ==/UserScript==
+
+//TODO ==================================================================
+//TODO: 1) If on "Directions" view - update different set of divs
+// 2) If '&' received - Find each street, and if all are the same territory - use that territory.  Otherwise, not found.  (example: HODGE DR & LINBERGER DR)
+// 3) I think it is ok to hardcode all highways to Green Knoll (check that)
+
+var parseText = function(text) {
+    var addressText = text.split(':').pop().split('-').pop();
+    var addressDescr;
+        
+    var slashIdx = addressText.indexOf('\/');
+    if( slashIdx > 0 ) {
+        addressDescr = addressText.substring(0, slashIdx);
+        addressText = addressText.substring(slashIdx+1);
+  }
+  return addressText.trim();  
+};
+
+var testIncidents = function() {
+    
+    $('#tblDispatchMessages').each(function() {
+        $(this).children().each(function() {
+//            console.log($(this).text());
+            if( $(this).find('#territory').length === 0 ) {
+                var territory = findTerritory(parseText($(this).text()));
+                var territorySpan;
+                if( territory == 'Not Found' ) {
+                    territorySpan = '<span style="color:red">';
+                } else if( territory == 'Martinsville' ) {
+                    territorySpan = '<span style="color:green">';
+                } else if( territory == 'Green Knoll' ) {
+                    territorySpan = '<span style="color:blue">';
+                }
+                $(this).append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
+            }
+        });
+    });
+};
+
+$(document).ready(function() {
+        readJson();
+        setInterval(testIncidents, 1000*3);
+});
+
+
 var locatorBook;
 var streetAlias;
 var NOT_FOUND = 'Not Found';
-var MARTINSVILLE = 'Martinsville';
-var GREEN_KNOLL = 'Green Knoll';
-var MUTUAL_AID = "Mutual Aid";
 
-var LOG_E = 3;
-var LOG_F = 2;
-var LOG_D = 1;
-var LOG_T = 0;
-
-
-function log(level, message) {
-	//console.log(message);
-}
-
-var streetModifiers = {
+var streetModifiers = { 
 	'road' : 'rd',
 	'lane' : 'ln',
-	'drive' : 'dr',
+	'drive' : 'dr', 
 	'street' : 'st',
 	'trail' : 'tr',
 	'court' : 'ct',
 	'place' : 'pl',
 	'avenue' : 'ave',
 	'north' : 'n',
-	'south' : 's',
-	'av' : 'ave'
-};
-
-var absoluteValues = {
-	'rt. 202/206' : GREEN_KNOLL,
-	'rt. 22' : GREEN_KNOLL,
-	'u s hwy' : GREEN_KNOLL,
-	'commons way' : GREEN_KNOLL,
-	'rte 287' : MUTUAL_AID
+	'south' : 's'
 };
 
 var nsew = ['n','s','e','w'];
@@ -63,7 +95,7 @@ function replaceStreetAbbr(street) {
 	var name = street.substring(0, lastUnder);
 	var lastPart = street.substring(lastUnder+1);
 
-	log(LOG_D, "split street: " + street + " into: " + name + " and " + lastPart);
+	console.log("split street: " + street + " into: " + name + " and " + lastPart);
 	if( lastPart in streetModifiers ) {
 		return name + "_" + streetModifiers[lastPart];
 	}
@@ -75,13 +107,14 @@ function findStreetByName(street) {
 	var retStreetValue;
 
 	$.each(locatorBook.street_addresses, function(streetKey, streetValue) {
+		//console.log('comparing: ' + streetKey + ' ' + street)
 		if( streetKey === street ) {
 			retStreetValue = streetValue;
 			return false; // breaks the loop
 		}
 	});
 
-	log(LOG_D, "\t\t<< findStreetByname called with: " + street + " returning: " + retStreetValue);
+	console.log("\t\t<< findStreetByname called with: " + street + " returning: " + retStreetValue);
 	return retStreetValue;
 }
 
@@ -95,7 +128,7 @@ function findStreetByAlias(street) {
 		}
 	});
 
-	log(LOG_D, '\t\t<< findStreetByAlias caled with: ' + street + ' returning: ' + retStreetValue);
+	console.log('\t\t<< findStreetByAlias caled with: ' + street + ' returning: ' + retStreetValue);
 	return retStreetValue;
 }
 
@@ -119,7 +152,7 @@ function findRange(streetNum, ranges) {
 			}
 		}
 	});
-	log(LOG_D, 'findRange(' + streetNum + ") returning: " + retTerritory);
+	console.log('findRange(' + streetNum + ") returning: " + retTerritory);
 	return retTerritory;
 }
 
@@ -127,29 +160,13 @@ function chopLast(street) {
 	return street.substring(0, street.lastIndexOf('_'));
 }
 
-function checkAbsoluteValues(rawStreetName) {
-	var lowerStreetName = rawStreetName.toLowerCase();
-	var retval;
-console.log("++++++++++ Checking for Absolute values!!");
-	$.each(absoluteValues, function(key, value) {
-		if( lowerStreetName.includes(key) ) {
-			retval = value;
-			return false;
-		} else {
-			console.log(lowerStreetName + " Does not contain: " + key);
-		}
-	});
-	return retval;
-}
-
 function findStreet(rawStreetName) {
-
 	var streetName = normalizeStreetName(rawStreetName);
 
 	// unmodified name
 	var streetObject = findStreetByName(streetName);
 	if( streetObject === null || streetObject === undefined) {
-			log(LOG_D, '---0 About to call after having received a street object of: ' + streetObject);
+			console.log('---0 About to call after having received a street object of: ' + streetObject);
 		streetObject = findStreetByAlias(streetName);
 	}
 
@@ -169,7 +186,7 @@ function findStreet(rawStreetName) {
 			streetObject = findStreetByName(adjustedStreetName);
 		}
 		if( streetObject === null || streetObject === undefined ) {
-			log(LOG_D, '---1 About to call after having received a street object of: ' + streetObject);
+			console.log('---1 About to call after having received a street object of: ' + streetObject);
 			streetObject = findStreetByAlias(adjustedStreetName);
 		}
 	}
@@ -181,7 +198,7 @@ function findStreet(rawStreetName) {
 			streetObject = findStreetByName(withoutRoad);
 		}
 		if( streetObject === null || streetObject === undefined ) {
-			log(LOG_D, '---2 About to call after having received a street object of: ' + streetObject);
+			console.log('---2 About to call after having received a street object of: ' + streetObject);
 			streetObject = findStreetByAlias(withoutRoad);
 		}
 	}
@@ -195,27 +212,16 @@ function findStreet(rawStreetName) {
 }
 
 function handleStreetNotFound(rawStreetName) {
-	log(LOG_D, "Unable to find street: " + rawStreetName);
+	console.log("Unable to find street: " + rawStreetName);
 }
 
-// =================================
-// =================================
-// Main entry point
-// =================================
-// =================================
+
 function findTerritory(streetAddress) {
-	log(LOG_D, 'findTerritory(' + streetAddress.trim() + ')');
-
-	var hardcodedVal = checkAbsoluteValues(streetAddress);
-	if( hardcodedVal !== undefined ) {
-		log(LOG_D, '<<<<<<<<<<<<<<<<<<<<<<< findStreet returning: ' + hardcodedVal);
-		return hardcodedVal;
-	}
-
+    var trimmedAddress = streetAddress.replace(/^\s+|\s+$/g,'');
 	var territory = NOT_FOUND;
-	
-	var streetNum = streetAddress.trim().split(' ')[0];
-	var streetName = streetAddress.trim().substring(streetNum.length+1);
+    var firstSpace = trimmedAddress.indexOf(' ');
+	var streetNum = trimmedAddress.substring(0, firstSpace);
+	var streetName = trimmedAddress.substring(firstSpace+1);
 
 	var streetObject = findStreet(streetName);
 	if( streetObject !== null && streetObject !== undefined ) {
@@ -235,15 +241,9 @@ function assertTest(address, expectedLookup, result) {
 		return "Unable to find address: " + address;
 	}
 
-	console.log("FindTerritory returning: " + findTerritory(address) + " Expected: " + expectedLookup);
 	if( findTerritory(address) != expectedLookup ) {
 		result.push(formatProblem());
 	}
-}
-
-function readJson() {
-	locatorBook = $.parseJSON(locatorBookJSON);
-	streetAlias = $.parseJSON(streetAliasJSON);
 }
 
 function readJson() {
@@ -252,5 +252,9 @@ function readJson() {
 
     locatorBook = $.parseJSON(locatorBookJSON);
 	streetAlias = $.parseJSON(streetAliasJSON);
+}
+
+function foo(result) {
+	result.push('George');
 }
 
