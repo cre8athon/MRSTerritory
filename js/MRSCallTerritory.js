@@ -134,7 +134,8 @@ var absoluteValues = {
 	'commons way' : GREEN_KNOLL,
 	'rte 287' : MUTUAL_AID,
 	'rte 202': GREEN_KNOLL,
-	'hwy no 28': MUTUAL_AID
+	'hwy no 28': MUTUAL_AID,
+	'shasta': GREEN_KNOLL
 };
 
 var nsewMap = {n:'north', s:'south', e:'east', w:'west'};
