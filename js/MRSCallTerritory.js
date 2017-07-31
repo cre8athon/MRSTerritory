@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MRS Call Territory
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  try to take over the world!
 // @author       You
 // @match        *://www.iamresponding.com/v3/*
@@ -17,9 +17,38 @@
 //     scctxt@co.somerset.nj.us:GKL-RS:16255597:11/03/2016 10:18:05:STRUCTURE FIRE: BOUND B-123 VOSSELLER AVE
 //     undefinedundefined
 
+/*jshint multistr: true */
+
+var townships = [
+	'SOMERVI',
+	'BRIDGEW',
+	'FAR HIL',
+	'BOUND B',
+	'HILLSBO'
+];
+
+/*
+Extract the address from the text string.  Pattern is as follows: 
+Find the last colon in the string, then to the right of that colon:
+	space<township>dash(optional)address
+*/
 var parseText = function(text) {
-//    console.log('About to parse text: ' + text);
-    var addressText = text.split(':').pop().split('-').pop();
+
+	var addressText;
+	var afterLastColon = text.split(':').pop();
+
+	// If there is no dash, look to the right of the township (if found)
+	if( afterLastColon.indexOf('-') == -1 ) {
+		for( var township in townships ) {		
+			var townshipIdx = afterLastColon.indexOf(townships[township]);
+			if( townshipIdx > -1 ) {
+				addressText = afterLastColon.substring(townshipIdx+townships[township].length);
+				break;
+			}
+		}
+	} else {
+		addressText = afterLastColon.split('-').pop();
+	}
     var addressDescr;
 
     var slashIdx = addressText.indexOf('\/');
@@ -27,7 +56,7 @@ var parseText = function(text) {
         addressDescr = addressText.substring(0, slashIdx);
         addressText = addressText.substring(slashIdx+1);
   }
-  return addressText.trim();
+  return addressText.replace(/^\s+|\s+$/g,"");
 };
 
 function makeTerritorySpanElement(territory) {
@@ -39,32 +68,29 @@ function makeTerritorySpanElement(territory) {
     } else if( territory == 'Green Knoll' ) {
         territorySpan = '<span style="color:white;background-color:green;border-style:solid;border-color:black;border-width:1px;padding:2px;">';
     } else {
-    	territorySpan = '<span style="color:black;background-color:yellow;border-style:solid;border-color:black;border-width:1px;padding:2px;">';
+    	territorySpan = '<span style="color:black;background-color:yellow;border-style:solid;border-color:black;border-width:1px;padding:2px;">Mutual Aid to: ';
     }
     return territorySpan;
 }
 
 function processMainViewChildren() {
-    console.log('>> processMainViewChildren children: ');
+//    console.log('>> processMainViewChildren children: ');
     $('#tblDispatchMessages').children().each(function() {
         if( $(this).find('#territory').length === 0 ) {
-            var territory = findTerritory(parseText($(this).text()));
+            var territory = findTerritory($(this).text());
             var territorySpan = makeTerritorySpanElement(territory);
-            console.log('>> old height: ' + $(this).height());
             $(this).height('+=40');
-            console.log('<< new height: ' + $(this).height());
-            //$(this).css('height', $(this).height() + 10);
             $(this).append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
         }
     });
 }
 
 function processAltViewChildren() {
-    console.log(">> in processAltViewChildren");
+//    console.log(">> in processAltViewChildren");
 	$('#tblDispatchMessages').find('li').each(function(idx, li) {
 		console.log('Checking li: ' + parseText($(li).text()));
         if( $(li).find('#territory').length === 0 ) {
-			var territory = findTerritory(parseText($(this).text()));
+			var territory = findTerritory($(this).text());
 	        var territorySpan = makeTerritorySpanElement(territory);
 	        $(this).find('label').append("<div id='territory'><b>" + territorySpan + territory + "</span></b></div>");
 	    }
@@ -99,6 +125,7 @@ var NOT_FOUND = 'Not Found';
 var MARTINSVILLE = 'Martinsville';
 var GREEN_KNOLL = 'Green Knoll';
 var MUTUAL_AID = 'Mutual Aid';
+var FAR_HILLS = "Far Hills-Bedminster";
 
 var loggingEnabled = false;
 
@@ -130,21 +157,22 @@ var streetModifiers = {
 var absoluteValues = {
 	'rt. 202/206' : GREEN_KNOLL,
 	'rt. 22' : GREEN_KNOLL,
-	'u s hwy' : GREEN_KNOLL,
 	'commons way' : GREEN_KNOLL,
-	'rte 287' : MUTUAL_AID,
-	'rte 202': GREEN_KNOLL,
-	'hwy no 28': MUTUAL_AID
+	'rte 202': GREEN_KNOLL
+//	'rte 287' : MUTUAL_AID,
+//	'hwy no 28': MUTUAL_AID
+//	'u s hwy' : GREEN_KNOLL,
 };
 
 var nsewMap = {n:'north', s:'south', e:'east', w:'west'};
 
 function normalizeStreetName(street) {
+	street = street.replace(/^\s+|\s+$/g,"");
 	if( street.indexOf('#') > 0 ) {
 		street = street.substring(0, street.indexOf('#'));
-		street = street.trim();
+		street = street.replace(/^\s+|\s+$/g,"");
 	}
-	return street.replace(/ /g, '_').toLowerCase().trim();
+	return street.replace(/ /g, '_').toLowerCase().replace(/^\s+|\s+$/g,"");
 }
 
 function findStreetByName(street) {
@@ -175,43 +203,59 @@ function findStreetByAlias(street) {
 	return retStreetValue;
 }
 
+function countRanges(ranges) {
+	var count = 0;
+	$.each(ranges, function(range, territory) {
+		count++;
+	});
+	return count;
+}
+
 function findRange(streetNum, ranges) {
 	var retTerritory = NOT_FOUND;
 
 	// If there is no street number provided, all ranges must be for same territory
 	if( streetNum === 0 ) {
 		$.each(ranges, function(range, territory) {
-			if( retTerritory.length == 0 ) {
+			if( retTerritory == NOT_FOUND ) {
 				retTerritory = territory;
 			} else if( retTerritory != territory ) {
+				console.log(retTerritory + ' != ' + territory);
 				log("findRange: Unable to find territory because streetNumber was not provided and street spans multiple territories");
 				return false;
 			}
 		});
-
 	} else {
-		// If there is a zero, the whole street applies
-		$.each(ranges, function(range, territory) {
-			if( range === "0" ) {
+		// If there is only one range, take it!
+		if( countRanges(ranges) == 1) {
+			$.each(ranges, function(range, territory) {
 				retTerritory = territory;
-				return false;
-			}
-
-			if( range.indexOf('-') > 0 ) {
-				var lowRange = parseInt(range.substring(0, range.indexOf('-')));
-				var highRange = parseInt(range.substring(range.indexOf('-')+1));
-
-				if( streetNum >= lowRange && streetNum <= highRange ) {
+				return false; // breaks the $.each
+			});
+		} else {
+			// If there is a zero, the whole street applies
+			$.each(ranges, function(range, territory) {
+				if( range === "0" ) {
 					retTerritory = territory;
 					return false;
 				}
-			} else if( range.indexOf('and') > 0 ) {
-				if( streetNum == range.split('and')[0] || streetNum == range.split('and')[1] ) {
-					retTerritory = territory;
-					return false;
-				}
-			} 
-		});
+
+				if( range.indexOf('-') > 0 ) {
+					var lowRange = parseInt(range.substring(0, range.indexOf('-')));
+					var highRange = parseInt(range.substring(range.indexOf('-')+1));
+
+					if( streetNum >= lowRange && streetNum <= highRange ) {
+						retTerritory = territory;
+						return false;
+					}
+				} else if( range.indexOf('and') > 0 ) {
+					if( streetNum == range.split('and')[0] || streetNum == range.split('and')[1] ) {
+						retTerritory = territory;
+						return false;
+					}
+				} 
+			});
+		}
 	}
 	log('findRange(' + streetNum + ") returning: " + retTerritory);
 	return retTerritory;
@@ -246,7 +290,7 @@ function checkAbsoluteValues(rawStreetName) {
 // ================================================
 var findPlain = function(streetName) {
 	return streetName;
-}
+};
 
 var replaceStreetAbbr = function(street) {
 	var lastUnder = street.lastIndexOf('_');
@@ -263,7 +307,7 @@ var replaceStreetAbbr = function(street) {
 	}
 
 	return street;
-}
+};
 
 var reverseReplaceStreetAbbr = function(street) {
 	var lastUnder = street.lastIndexOf('_');
@@ -285,23 +329,23 @@ var reverseReplaceStreetAbbr = function(street) {
 	});
 
 	return retVal;
-}
+};
 
 var findReplaceGeoSuffix = function(streetName) {
 	var parts = chopFirst(streetName);
-	for( key in nsewMap ) {
+	for( var key in nsewMap ) {
 		if( parts[0] == key ) {
 			return nsewMap[key]+'_'+parts[1];
 		}
 	}
-}
+};
 
 var suffixStreetAbbr = function(streetName) {
 	var replaced = findReplaceGeoSuffix(streetName);
 	if( replaced !== undefined ) {
 		return replaceStreetAbbr(replaced);
 	}
-}
+};
 
 var dropFloor = function(streetName) {
 	var flIdx = streetName.indexOf('_fl_');
@@ -317,15 +361,15 @@ var dropFloor = function(streetName) {
 	} else {
 		return streetName;
 	}
-}
+};
 
 var dropFloorReplaceAbbr = function(streetName) {
 	return replaceStreetAbbr(dropFloor(streetName));
-}
+};
 
 var dropFloorRevReplaceAbbr = function(streetName) {
 	return reverseReplaceStreetAbbr(dropFloor(streetName));
-}
+};
 
 var functors = {
 	findPlain,
@@ -336,7 +380,7 @@ var functors = {
 	dropFloor,
 	dropFloorReplaceAbbr,
 	dropFloorRevReplaceAbbr
-}
+};
 
 function findStreet(rawStreetName) {
 	var streetName = normalizeStreetName(rawStreetName);
@@ -346,10 +390,10 @@ function findStreet(rawStreetName) {
 		ret = findStreetByName(functor(streetName));
 		if( ret === null || ret === undefined ) {
 			ret = findStreetByAlias(functor(streetName));
-		}		
+		}
 		if( ret !== null && ret !== undefined ) {
 			return false;
-		}		
+		}
 	});
 
 	return ret;
@@ -362,8 +406,9 @@ function findStreet(rawStreetName) {
 // Main entry point
 // =================================
 // =================================
-function findTerritory(streetAddress) {
-	log('findTerritory(' + streetAddress.trim() + ')');
+function findTerritory(dispatch) {
+	var streetAddress = parseText(dispatch);
+	log('findTerritory(' + streetAddress.replace(/^\s+|\s+$/g,"") + ')');
 
 	var hardcodedVal = checkAbsoluteValues(streetAddress);
 	if( hardcodedVal !== undefined ) {
@@ -409,7 +454,27 @@ function findTerritory(streetAddress) {
 		}
 	}
 
+	// As a last ditch effort, if you recognize the territory, print it out as mutual aid
+	if( territory == NOT_FOUND ) {
+		var dispatchTerritory = findDispatchTerritory(dispatch.split(':').pop());
+		if( dispatchTerritory !== undefined ) {
+			log('Territory not found, so substituting township: ' + dispatchTerritory);
+			territory = dispatchTerritory;
+		}
+	}
 	return territory;
+}
+
+// Find the first part of the text from the list of territories
+function findDispatchTerritory(dispatchTxt) {
+	var dt = dispatchTxt.replace(/^\s+|\s+$/g,"");
+
+	for( var terr of townships ) {
+		if( dt.startsWith(terr) ) {
+			return terr;
+		}
+	}
+	return undefined;
 }
 
 function isNumber(n) {
