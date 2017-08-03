@@ -1,0 +1,53 @@
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="./js/MRSCallTerritory.js"></script>
+<script src="./js/CountyDispatchTexts.js"></script>
+
+
+</head>
+<script>
+
+function getIncidentNumber(dispatch) {
+	return dispatch.split(':')[2];
+}
+
+function showAllNotFound(dispatches) {
+	var mutualAid = [];
+	console.log('================================== Not found =========================================');
+	$.each(dispatches, function(i, obj) {
+		if( obj.dispatch !== undefined ) {
+			var territory = findTerritory(obj.dispatch);
+			if( territory == "Not Found" ) {
+				console.log("[["+ parseText(obj.dispatch) + '(' + getIncidentNumber(obj.dispatch) + ")]] " + obj.dispatch);
+			} else if( territory !== GREEN_KNOLL && territory != MARTINSVILLE && territory != FAR_HILLS) {
+				mutualAid.push("[["+ parseText(obj.dispatch) + '(' + getIncidentNumber(obj.dispatch) + ") <guess> " + territory +  "]] " + obj.dispatch.split(':').pop());
+			}
+		}
+	});
+
+	console.log('================================== Mutual Aid ========================================');
+	for( var ma of mutualAid ) {
+		console.log(ma);
+	}
+}
+
+function showDetailsByIncident(dispatches, incidentNumber) {
+     $.each(dispatches, function(i, obj) {
+		if( obj.dispatch.indexOf(incidentNumber) > -1 ) {
+			loggingEnabled = true;
+			findTerritory(obj.dispatch);	
+		}
+	});	
+}
+
+$(document).ready(function() {
+
+    var dispatches = $.parseJSON(dispatchesJSON);
+
+    //console.log('Search for foothill rd: ' + JSON.stringify(findStreet('foothill rd ')));
+    //showAllNotFound(dispatches);
+    showDetailsByIncident(dispatches, 17170526);
+
+});
+
+</script>
