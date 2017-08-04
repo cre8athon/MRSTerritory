@@ -189,5 +189,8 @@ var dispatchesJSON = '[\
 {"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17169276:07/29/2017 06:25:19:OVERTURNED MV:NEG INJ: BRIDGEWU S HWY NO 22 HWY"},\
 {"dispatch":"17:20:20 Jul 30, 2017: scctxt@co.somerset.nj.us:GKLRS:17170326:07/30/2017 17:19:46:DIFF BREATHING: BRIDGEWCENTERBRIDGE II / 459 SHASTA DR #311"},\
 {"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17169926:07/30/2017 02:03:55:FIGHT: BRIDGEWGREEN KNOLL GRILLE / 645 U S HWY NOS 202 AND 206 HWY "},\
-{"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17170526:07/30/201723:20:34:STROKE:99YOF : BRIDGEW700 DONALD DR"}, \
+{"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17170526:07/30/201723:20:34:STROKE:99YOF : BRIDGEW700 DONALD DR NORTH"}, \
+{"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17172018:08/01/2017 17:07:25:DETAIL:NAT NIGHT OUT: OFFICEHQ / 40 N BRIDGE ST"}, \
+{"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17173807:08/03/2017 18:49:46:DIFF BREATHING:53 YOM : BRIDGEW14 HELLER DR Aug 03, 2017 - 18:50The location is not validated yet."}, \
+{"dispatch":"scctxt@co.somerset.nj.us:GKLRS:17173378:08/03/2017 09:53:27:BLEEDING:93 YOF: BRIDGEWCHELSEA AT BRIDGEWATER / 680 U S HWY NOS 202 AND 206 HWYNot FoundAug 03, 2017 - 09:56The location is not validated yet."}, \
 {"dispatch":"scctxt@co.somerset.nj.us:GKL-RS:16265329:11/15/2016 17:49:14:DIFF BREATHING:ELDERLY FEMALE: BRIDGEW-CENTERBRIDGE II / 459 SHASTA DR #208 "}]';

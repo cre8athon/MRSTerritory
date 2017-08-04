@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MRS Call Territory
 // @namespace    http://tampermonkey.net/
-// @version      0.2-20170802
+// @version      0.2.1.20170803
 // @description  try to take over the world!
 // @author       You
 // @match        *://www.iamresponding.com/v3/*
@@ -439,6 +439,11 @@ function findStreet(rawStreetName) {
 // =================================
 // =================================
 function findTerritory(dispatch) {
+    if( dispatch.indexOf('\n') > -1 ) {
+        var dParts = dispatch.split('\n');
+        dParts.pop();
+        dispatch = dParts.join();
+    }
 	var streetAddress = parseText(dispatch);
 	log('findTerritory(' + trim(streetAddress) + ')');
 
